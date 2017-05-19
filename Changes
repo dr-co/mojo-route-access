@@ -1,0 +1,6 @@
+Revision history for Perl extension Mojolicious::Plugin::Access.
+
+0.01  Fri May 19 16:00:45 2017
+	- original version; created by h2xs 1.23 with options
+		-X Mojolicious::Plugin::Access
+

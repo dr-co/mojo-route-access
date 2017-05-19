@@ -1,0 +1,6 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/Mojolicious-Plugin-Access.t
+lib/Mojolicious/Plugin/Access.pm
