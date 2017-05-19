@@ -1,5 +1,5 @@
-MYMETA.json                                        |  42 -
-MYMETA.yml                                         |  23 -
-Makefile                                           | 850 ---------------------
+MYMETA.json
+MYMETA.yml
+Makefile
 blib
-pm_to_blib                                         |   0
+pm_to_blib
