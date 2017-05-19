@@ -56,10 +56,7 @@ sub register {
                 $sv = $self->stash($v) if defined $v;
                 $res = $list->{$_}->($self, $sv, $v);
                 next if $res;
-                if (defined $res) {
-                    $self->reply->not_found;
-                    return;
-                }
+                $self->reply->not_found if defined $res;
                 return;
             }
         }
