@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib t/lib);
 
-use Test::More tests    => 29;
+use Test::More tests    => 33;
 use Encode qw(decode encode);
 
 
@@ -38,6 +38,16 @@ get '/undef-check', { access => 'number' } => sub {
     $self->render(json => { bla => $self->stash('blabla') });
 };
 
+under('/bridge/:bla', { access => { number => 'bla' } })
+    -> get(':ble', { access => { number => [ 'bla', 'ble' ] }}, sub {
+        my ($self) = @_;
+        $self->render(json => {
+            bla => $self->stash('blabla'),
+            old => $self->stash('oldbla')
+        });
+    })
+;
+
 plugin 'RouteAccess';
 
 app->add_route_access(
@@ -51,6 +61,7 @@ app->add_route_access(
         goto nf unless $check;
         goto nf unless $check =~ /^\d+$/;
 
+        $self->stash(oldbla => $self->stash('blabla'));
         $self->stash(blabla => $check * 2);
         return 1;
 
@@ -110,4 +121,10 @@ $t  -> get_ok('/undef-check')
     -> status_is(403)
     -> json_is('/status', '68f2a6ca-3ca4-11e7-815b-8767618c5cec')
     -> json_is('/bla', undef)
+;
+
+$t  -> get_ok('/bridge/3/24')
+    -> status_is(200)
+    -> json_is('/bla', 24 * 2)
+    -> json_is('/old', 3 * 2)
 ;
