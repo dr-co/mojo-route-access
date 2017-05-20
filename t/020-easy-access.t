@@ -15,68 +15,86 @@ BEGIN {
 }
 
 package Test::RouteAccess;
-use Mojolicious::Lite;
+use Mojo::Base 'Mojolicious';
 
-get '/ping' => sub {
+sub startup {
+    
     my ($self) = @_;
-    $self->render(text => 'pong');
-};
+    
+    $self->plugin('RouteAccess');
+    $self->add_route_access(
+        die     => sub {
+            die "99f463ae-3c99-11e7-9e18-ef793f14b189";
+        },
+
+        number    => sub {
+            my ($self, $check, $stash) = @_;
+
+            goto nf unless $check;
+            goto nf unless $check =~ /^\d+$/;
+
+            $self->stash(oldbla => $self->stash('blabla'));
+            $self->stash(blabla => $check * 2);
+            return 1;
+
+            nf:
+                $self->render(
+                    status => 403,
+                    json => {
+                        status => '68f2a6ca-3ca4-11e7-815b-8767618c5cec'
+                    });
+                return unless $check and $check eq 'nf';
+                return 0;
+        }
+    );
+
+    for my $r ($self->routes) {
+        $r  -> get('/ping')
+            -> to(cb => sub {
+                    my ($self) = @_;
+                    $self->render(text => 'pong');
+                }
+            );
 
 
-get '/die', { access => 'die' } => sub {
-    die 'da36f346-3c99-11e7-996f-0b3616705d19'
-};
+        $r  -> get('/die')
+            -> over(access => 'die')
+            -> to(cb => sub {
+                    die 'da36f346-3c99-11e7-996f-0b3616705d19'
+                }
+            );
 
 
-get '/number/:bla', { access => {number => 'bla'} } => sub {
-    my ($self) = @_;
-    $self->render(json => { bla => $self->stash('blabla') });
-};
+        $r  -> get('/number/:bla')
+            -> over(access => {number => 'bla'})
+            -> to(cb => sub {
+                    my ($self) = @_;
+                    $self->render(json => { bla => $self->stash('blabla') });
+                }
+            );
 
-get '/undef-check', { access => 'number' } => sub {
-    my ($self) = @_;
-    $self->render(json => { bla => $self->stash('blabla') });
-};
+        $r  -> get('/undef-check')
+            -> over(access => 'number')
+            -> to(cb => sub {
+                    my ($self) = @_;
+                    $self->render(json => { bla => $self->stash('blabla') });
+                }
+            );
 
-under('/bridge/:bla', { access => { number => 'bla' } })
-    -> get(':ble', { access => { number => [ 'bla', 'ble' ] }}, sub {
-        my ($self) = @_;
-        $self->render(json => {
-            bla => $self->stash('blabla'),
-            old => $self->stash('oldbla')
-        });
-    })
-;
-
-plugin 'RouteAccess';
-
-app->add_route_access(
-    die     => sub {
-        die "99f463ae-3c99-11e7-9e18-ef793f14b189";
-    },
-
-    number    => sub {
-        my ($self, $check, $stash) = @_;
-
-        goto nf unless $check;
-        goto nf unless $check =~ /^\d+$/;
-
-        $self->stash(oldbla => $self->stash('blabla'));
-        $self->stash(blabla => $check * 2);
-        return 1;
-
-        nf:
-            $self->render(
-                status => 403,
-                json => {
-                    status => '68f2a6ca-3ca4-11e7-815b-8767618c5cec'
-                });
-            return unless $check and $check eq 'nf';
-            return 0;
+        for my $r ($r->under('bridge/:bla')->over(access => { number => 'bla' })) {
+            $r  -> get(':ble')
+                -> over(access => { number => 'ble' })
+                -> to(cb => sub {
+                        my ($self) = @_;
+                        $self->render(json => {
+                            bla => $self->stash('blabla'),
+                            old => $self->stash('oldbla')
+                        });
+                    }
+                );
+        }
     }
-);
-
-
+}
 
 package main;
 

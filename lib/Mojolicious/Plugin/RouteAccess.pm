@@ -5,7 +5,8 @@ use Carp;
 our $VERSION = '0.01';
 
 use Data::Dumper;
-
+use constant CONDNAME       => 'access';
+use constant STASHNAME      => 'mojo.access.list';
 
 sub register {
     my ($self, $app, $conf) = @_;
@@ -32,29 +33,50 @@ sub register {
         $self;
     });
 
+    $app->routes->add_condition(CONDNAME() => sub {
+        my ($r, $self, $capture, $access) = @_;
+
+        $access = { $access, undef } unless ref $access;
+
+        croak "Usage: \$r->over(access => { access_name => 'stash'  })"
+            unless 'HASH' eq ref $access;
+
+        $self->{STASHNAME()} //= [];
+
+        my $stash = $self->{STASHNAME()};
+
+        my $list = $conf->{list};
+        
+        for (keys %$access) {
+            return 0 unless exists $list->{$_};
+            my $v = $access->{$_};
+            $v = [ $v ] unless 'ARRAY' eq ref $v;
+            push @$stash => [ $_, $v ];
+        }
+
+        return 1;
+    });
+
     $app->hook(around_action => sub {
         my ($next, $self, $action, $last) = @_;
-        my $access = $self->stash('access');
-        return $next->() unless $access;
+        my $access = delete $self->{ STASHNAME() };
 
-        $access = { $access => undef } unless 'HASH' eq ref $access;
+        return $next->() unless $access;
 
         my $list = $conf->{list};
 
-        for (keys %$access) {
-            unless (exists $list->{$_}) {
+        for (@$access) {
+            my ($n, $checks) = @$_;
+            unless (exists $list->{$n}) {
                 $self->reply->not_found;
                 return;
             }
-
-            my $checks = $access->{$_};
-            $checks = [ $checks ] unless 'ARRAY' eq ref $checks;
 
             my $res;
             for my $v (@$checks) {
                 my $sv;
                 $sv = $self->stash($v) if defined $v;
-                $res = $list->{$_}->($self, $sv, $v);
+                $res = $list->{$n}->($self, $sv, $v);
                 next if $res;
                 $self->reply->not_found if defined $res;
                 return;
