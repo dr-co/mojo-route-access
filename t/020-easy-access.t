@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib t/lib);
 
-use Test::More tests    => 33;
+use Test::More tests    => 41;
 use Encode qw(decode encode);
 
 
@@ -80,6 +80,14 @@ sub startup {
                     $self->render(json => { bla => $self->stash('blabla') });
                 }
             );
+        
+        $r  -> get('/number_hash/:bla')
+            -> over(access => 'number#bla')
+            -> to(cb => sub {
+                    my ($self) = @_;
+                    $self->render(json => { bla => $self->stash('blabla') });
+                }
+            );
 
         for my $r ($r->under('bridge/:bla')->over(access => { number => 'bla' })) {
             $r  -> get(':ble')
@@ -145,4 +153,15 @@ $t  -> get_ok('/bridge/3/24')
     -> status_is(200)
     -> json_is('/bla', 24 * 2)
     -> json_is('/old', 3 * 2)
+;
+
+$t  -> get_ok('/number_hash/1')
+    -> status_is(200)
+    -> header_like('Content-Type', qr{application/json})
+    -> json_is('/bla', 1 * 2)
+    
+    -> get_ok('/number_hash/1024')
+    -> status_is(200)
+    -> header_like('Content-Type', qr{application/json})
+    -> json_is('/bla', 1024 * 2)
 ;

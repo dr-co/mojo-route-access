@@ -1,3 +1,9 @@
+libmojolicious-plugin-routeaccess-perl (0.02) nowtaxi; urgency=medium
+
+  * Hash-style for over(access => 'bla#bla').
+
+ -- Dmitry E. Oboukhov <unera@debian.org>  Mon, 22 May 2017 14:48:33 +0300
+
 libmojolicious-plugin-routeaccess-perl (0.01) nowtaxi; urgency=medium
 
   * Init debian version.

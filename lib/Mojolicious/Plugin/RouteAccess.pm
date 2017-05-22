@@ -2,7 +2,7 @@ package Mojolicious::Plugin::RouteAccess;
 use Mojo::Base 'Mojolicious::Plugin';
 use Carp;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Data::Dumper;
 use constant CONDNAME       => 'access';
@@ -36,7 +36,10 @@ sub register {
     $app->routes->add_condition(CONDNAME() => sub {
         my ($r, $self, $capture, $access) = @_;
 
-        $access = { $access, undef } unless ref $access;
+        unless (ref $access) {
+            my ($k, $v) = split /#/, $access, 2;
+            $access = { $k, $v };
+        }
 
         croak "Usage: \$r->over(access => { access_name => 'stash'  })"
             unless 'HASH' eq ref $access;
