@@ -1,8 +1,0 @@
-Changes
-lib/Mojolicious/Plugin/RouteAccess.pm
-Makefile.PL
-MANIFEST
-README
-t/010-base.t
-t/020-easy-access.t
-t/Mojolicious-Plugin-Access.t
