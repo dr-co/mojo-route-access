@@ -15,6 +15,8 @@ tarball: clean
 	tar --exclude=debian --exclude=.git -czvf \
 	$(PKG)_$(MV).orig.tar.gz \
 	$(PKG)-$(MV)
+manifest: clean
+	git ls-files | sort > MANIFEST
 
 override_dh_install:
 	dh_install
