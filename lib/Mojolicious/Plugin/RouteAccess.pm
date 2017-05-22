@@ -2,7 +2,7 @@ package Mojolicious::Plugin::RouteAccess;
 use Mojo::Base 'Mojolicious::Plugin';
 use Carp;
 
-our $VERSION = '0.02';
+our $VERSION = '0.04';
 
 use Data::Dumper;
 use constant CONDNAME       => 'access';
