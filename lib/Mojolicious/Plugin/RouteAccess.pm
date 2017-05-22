@@ -81,7 +81,7 @@ sub register {
 
             my %checked;
 
-            my $res;
+            my @res;
             for my $v (@$checks) {
                 my $sv;
                 $sv = $self->stash($v) if defined $v;
@@ -92,13 +92,14 @@ sub register {
                 $key .= qq{"$v"} if defined $v;
                 next if $checked{$key};
                 
-                $res = $list->{$n}->($self, $sv, $v);
-                if ($res) {
+                @res = $list->{$n}->($self, $sv, $v);
+                $res[0] = 0 unless @res;
+                if ($res[0]) {
                     $checked{$key} = 1;
                     next;
                 }
                 
-                $self->reply->not_found if defined $res;
+                $self->reply->not_found if defined $res[0];
                 return;
             }
         }

@@ -43,7 +43,7 @@ sub startup {
                     json => {
                         status => '68f2a6ca-3ca4-11e7-815b-8767618c5cec'
                     });
-                return unless $check and $check eq 'nf';
+                return undef unless $check and $check eq 'nf';
                 return 0;
         }
     );
