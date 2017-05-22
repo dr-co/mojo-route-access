@@ -93,13 +93,17 @@ sub register {
                 next if $checked{$key};
                 
                 @res = $list->{$n}->($self, $sv, $v);
-                $res[0] = 0 unless @res;
-                if ($res[0]) {
-                    $checked{$key} = 1;
-                    next;
+
+                if (@res) {
+                    if ($res[0]) {                      # true
+                        $checked{$key} = 1;
+                        next;
+                    }
+                    return unless defined $res[0];      # undef
                 }
                 
-                $self->reply->not_found if defined $res[0];
+                # return или return FALSE попадает сюда
+                $self->reply->not_found;
                 return;
             }
         }
@@ -202,6 +206,28 @@ Stash value. C</bla/:id> => C</bla/123> will contain C<123>.
 Stash name. C</bla/:id> => C</bla/123> will contain C<id>.
 
 =back
+
+
+Checker can return:
+
+=over
+
+=item C<true> (scalar).
+
+Access passed. Controller will be run.
+
+=item C<false> (scalar) or C<none> (C<return;>)
+
+Access denined. Controller will not be run. C<<$app->not_found>> will
+be run.
+
+=item C<undef> (scalar).
+
+Access denined. Controller will not be run. C<<$app->not_found>> will
+not be run.
+
+=back
+
 
 =head1 AUTHORS
 
