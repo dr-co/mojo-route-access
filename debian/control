@@ -1,0 +1,17 @@
+Source: libmojolicious-plugin-routeaccess-perl
+Section: perl
+Homepage: https://github.com/dr-co/mojo-route-access
+Maintainer: Dmitry E. Oboukhov <unera@debian.org>
+Uploaders: Roman V. Nikolaev <rshadow@rambler.ru>
+Build-Depends: debhelper (>= 7),
+ libmojolicious-perl
+Standards-Version: 3.9.3
+Priority: extra
+
+Package: libmojolicious-plugin-routeaccess-perl
+Depends: ${perl:Depends}, ${misc:Depends},
+ libmojolicious-perl
+Architecture: all
+Description: Mojolicious plugin route access controller.
+ The plugin allow You to access/deny database objects for Your
+ site's users by route stash.

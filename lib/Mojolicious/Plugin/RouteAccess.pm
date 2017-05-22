@@ -41,9 +41,10 @@ sub register {
         croak "Usage: \$r->over(access => { access_name => 'stash'  })"
             unless 'HASH' eq ref $access;
 
-        $self->{STASHNAME()} //= [];
-
-        my $stash = $self->{STASHNAME()};
+        # TODO: HACK: uses req->{var} as stash ($self->stash can be redefined
+        # from time to time)
+        $self->req->{STASHNAME()} //= [];
+        my $stash = $self->req->{STASHNAME()};
 
         my $list = $conf->{list};
         
@@ -59,7 +60,10 @@ sub register {
 
     $app->hook(around_action => sub {
         my ($next, $self, $action, $last) = @_;
-        my $access = delete $self->{ STASHNAME() };
+        
+        # TODO: HACK: uses req->{var} as stash ($self->stash can be redefined
+        # from time to time)
+        my $access = delete $self->req->{ STASHNAME() };
 
         return $next->() unless $access;
 
@@ -72,12 +76,25 @@ sub register {
                 return;
             }
 
+            my %checked;
+
             my $res;
             for my $v (@$checks) {
                 my $sv;
                 $sv = $self->stash($v) if defined $v;
+                
+                my $key = '';
+                $key .= qq{"$sv"} if defined $sv;
+                $key .= '::';
+                $key .= qq{"$v"} if defined $v;
+                next if $checked{$key};
+                
                 $res = $list->{$n}->($self, $sv, $v);
-                next if $res;
+                if ($res) {
+                    $checked{$key} = 1;
+                    next;
+                }
+                
                 $self->reply->not_found if defined $res;
                 return;
             }
@@ -118,13 +135,14 @@ Mojolicious::Plugin::RouteAccess - Mojolicious plugin controller route access.
         # ...
 
         $self->routes
-            -> get('/edit-myobject/:id', access => { mycheck => 'id' })
+            -> get('/edit-myobject/:id')
+            -> over(access => { mycheck => 'id' })
             -> to('my_controller#myaction')
             -> name('bla');
 
 
         $ctx->add_route_access(mycheck => sub {
-            my ($ctx, $id) = @_;
+            my ($ctx, $id, $stashname) = @_;
 
             my $myobject = Database->load(id => $id);
             return unless $ctx->authen_user->has_permit_to_edit($myobject);
@@ -144,8 +162,55 @@ You can add a callback (L<add_route_access>) that checks if C<authen_user> can
 edit C<Object> and return C<0> (C<undef>) or C<1>.
 
 
+The module add C<access> condition that receives scalar or hashref definition
+for route checker:
+
+    $r  -> get('/bla')
+        -> over(access => 'mycheck')
+        -> to(...);
+
+    # the same:
+    $r  -> get('/bla')
+        -> over(access => { mycheck => undef })
+        -> to(...);
+
+
 =head1 METHODS
 
 =head2 add_route_access($name, sub { ... })
 
 Add checker to list.
+
+Checker - is a callback that receive the following arguments:
+
+=over
+
+=item ctx
+
+Final controller.
+
+=item value
+
+Stash value. C</bla/:id> => C</bla/123> will contain C<123>.
+
+=item stashname
+
+Stash name. C</bla/:id> => C</bla/123> will contain C<id>.
+
+=back
+
+=head1 AUTHORS
+
+L<Dmitry E. Oboukhov (unera@debian.org)|mailto:unera@debian.org>
+
+L<Roman V. Nikolaev (rshadow@rambler.ru)|mailto:rshadow@rambler.ru>
+
+=head1 LICENSE
+
+Copyright (C) 2017 Dmitry E. Oboukhov L<mailto:unera@debian.org>
+
+Copyright (C) 2011 Roman V. Nikolaev L<mailto:rshadow@rambler.ru>
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.8 or,
+at your option, any later version of Perl 5 you may have available.
