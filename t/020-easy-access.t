@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib t/lib);
 
-use Test::More tests    => 41;
+use Test::More tests    => 64;
 use Encode qw(decode encode);
 
 
@@ -101,6 +101,33 @@ sub startup {
                     }
                 );
         }
+
+        for my $r ($r->under('bstash/:bla')
+                        -> to(cb => sub { $_[0]->stash('fla', 15121974); 1 })) {
+
+            $r  -> get(':ble')
+                -> over(access => { number => 'ble' })
+                -> to(cb => sub {
+                    my ($self) = @_;
+                    $self->render(json => {
+                        ble => $self->stash('ble'),
+                        bla => $self->stash('bla'),
+                        fla => $self->stash('fla'),
+                    });
+                });
+        }
+
+        for my $r ($r->under('cascade/:bla')->over(access => 'number#bla')) {
+            $r  -> get(':ble')
+                -> over(access => 'number#ble')
+                -> to(cb => sub {
+                    my ($self) = @_;
+                    $self->render(json => {
+                        ble => $self->stash('ble'),
+                        bla => $self->stash('bla'),
+                    });
+                });
+        }
     }
 }
 
@@ -164,4 +191,36 @@ $t  -> get_ok('/number_hash/1')
     -> status_is(200)
     -> header_like('Content-Type', qr{application/json})
     -> json_is('/bla', 1024 * 2)
+;
+
+$t  -> get_ok('/bstash/123/234')
+    -> status_is(200)
+    -> header_like('Content-Type', qr{application/json})
+    -> json_is('/bla', 123)
+    -> json_is('/ble', 234)
+    -> json_is('/fla', 15121974)
+;
+
+$t  -> get_ok('/bstash/123/abc')
+    -> header_like('Content-Type', qr{application/json})
+    -> status_is(403)
+    -> json_is('/status', '68f2a6ca-3ca4-11e7-815b-8767618c5cec')
+;
+
+$t  -> get_ok('/cascade/123/234')
+    -> status_is(200)
+    -> header_like('Content-Type', qr{application/json})
+    -> json_is('/bla', 123)
+    -> json_is('/ble', 234)
+;
+
+$t  -> get_ok('/cascade/abc/234')
+    -> status_is(403)
+    -> header_like('Content-Type', qr{application/json})
+    -> json_is('/status', '68f2a6ca-3ca4-11e7-815b-8767618c5cec')
+;
+$t  -> get_ok('/cascade/123/abc')
+    -> status_is(403)
+    -> header_like('Content-Type', qr{application/json})
+    -> json_is('/status', '68f2a6ca-3ca4-11e7-815b-8767618c5cec')
 ;

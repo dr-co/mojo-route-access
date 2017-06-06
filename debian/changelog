@@ -1,3 +1,9 @@
+libmojolicious-plugin-routeaccess-perl (0.05) nowtaxi; urgency=medium
+
+  * The plugin works properly with bridge cascade.
+
+ -- Dmitry E. Oboukhov <unera@debian.org>  Tue, 06 Jun 2017 18:37:54 +0300
+
 libmojolicious-plugin-routeaccess-perl (0.04) nowtaxi; urgency=medium
 
   * Update documentation.

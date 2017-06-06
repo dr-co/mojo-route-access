@@ -2,7 +2,7 @@ package Mojolicious::Plugin::RouteAccess;
 use Mojo::Base 'Mojolicious::Plugin';
 use Carp;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use Data::Dumper;
 use constant CONDNAME       => 'access';
@@ -63,6 +63,8 @@ sub register {
 
     $app->hook(around_action => sub {
         my ($next, $self, $action, $last) = @_;
+
+        return $next->() unless $last;
         
         # TODO: HACK: uses req->{var} as stash ($self->stash can be redefined
         # from time to time)
