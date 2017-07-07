@@ -2,7 +2,7 @@ package Mojolicious::Plugin::RouteAccess;
 use Mojo::Base 'Mojolicious::Plugin';
 use Carp;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use Data::Dumper;
 use constant CONDNAME       => 'access';
@@ -46,19 +46,42 @@ sub register {
 
         # TODO: HACK: uses req->{var} as stash ($self->stash can be redefined
         # from time to time)
-        $self->req->{STASHNAME()} //= [];
-        my $stash = $self->req->{STASHNAME()};
+        my $stash = $self->req->{STASHNAME()} //= [];
 
         my $list = $conf->{list};
 
-        for (keys %$access) {
-            return 0 unless exists $list->{$_};
-            my $v = $access->{$_};
+        for my $k (keys %$access) {
+            return 0 unless exists $list->{$k};
+            my $v = $access->{$k};
             $v = [ $v ] unless 'ARRAY' eq ref $v;
-            push @$stash => [ $_, $v ];
+            push @$stash => [ $k, $v ];
         }
 
         return 1;
+    });
+
+    $app->helper(add_route_access_condition => sub {
+        my ($self, $alias, $k) = @_;
+
+        $k //= $alias;
+
+        my $list = $conf->{list};
+        croak "Access checker '$k' not added to list"
+                unless exists $list->{$k};
+
+        $self->app->routes->add_condition($alias => sub{
+            my ($r, $self, $captures, $pattern) = @_;
+
+            my $v = $pattern;
+            $v = [ $v ] unless 'ARRAY' eq ref $v;
+
+            my $stash = $self->req->{STASHNAME()} //= [];
+            push @$stash => [ $k, $v ];
+
+            return 1;
+        });
+
+        $self;
     });
 
     $app->hook(around_action => sub {
@@ -159,6 +182,23 @@ Mojolicious::Plugin::RouteAccess - Mojolicious plugin controller route access.
             $ctx->stash(myobject => $myobject);
             return 1;
         });
+
+        # ...
+
+        # You can use spimple conditions for check:
+        $self->routes
+            -> get('/edit-myobject/:id')
+            -> over(mycheck => 'id')
+            -> to('my_controller#myaction')
+            -> name('bla');
+
+        $ctx
+            ->add_route_access(mycheck => sub {...})
+            ->add_route_access_condition('mycheck')
+
+            # you can add alias
+            ->add_route_access_condition('foocheck' => 'mycheck')
+        ;
     }
 
 =head1 DESCRIPTION
@@ -229,6 +269,12 @@ Access denined. Controller will not be run. C<<$app->not_found>> will
 not be run.
 
 =back
+
+=head2 add_route_access($name)
+
+=head2 add_route_access($alias, $name)
+
+Add simple condition for checker.
 
 
 =head1 AUTHORS

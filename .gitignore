@@ -8,4 +8,4 @@ debian/files
 debian/libmojolicious-plugin-routeaccess-perl*
 *.tar.gz
 *.tgz
-
+.project

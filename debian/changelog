@@ -1,3 +1,9 @@
+libmojolicious-plugin-routeaccess-perl (0.06) nowtaxi; urgency=medium
+
+  * Simple conditions
+
+ -- Roman V. Nikolaev <rshadow@rambler.ru>  Fri, 07 Jul 2017 17:00:08 +0300
+
 libmojolicious-plugin-routeaccess-perl (0.05) nowtaxi; urgency=medium
 
   * The plugin works properly with bridge cascade.

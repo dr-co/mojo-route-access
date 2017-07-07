@@ -12,3 +12,4 @@ MANIFEST
 README
 t/010-base.t
 t/020-easy-access.t
+t/030-alias.t
