@@ -19,7 +19,7 @@ sub register {
         my ($self, %list) = @_;
 
         while (my ($name, $cb) = each %list) {
-            croak "Usage \$app->add_access(my_accessor => sub { ... })"
+            croak "Usage \$app->add_route_access(my_accessor => sub { ... })"
                 unless $name and 'CODE' eq ref $cb;
 
 
@@ -50,7 +50,7 @@ sub register {
         my $stash = $self->req->{STASHNAME()};
 
         my $list = $conf->{list};
-        
+
         for (keys %$access) {
             return 0 unless exists $list->{$_};
             my $v = $access->{$_};
@@ -65,7 +65,7 @@ sub register {
         my ($next, $self, $action, $last) = @_;
 
         return $next->() unless $last;
-        
+
         # TODO: HACK: uses req->{var} as stash ($self->stash can be redefined
         # from time to time)
         my $access = delete $self->req->{ STASHNAME() };
@@ -87,13 +87,13 @@ sub register {
             for my $v (@$checks) {
                 my $sv;
                 $sv = $self->stash($v) if defined $v;
-                
+
                 my $key = '';
                 $key .= qq{"$sv"} if defined $sv;
                 $key .= '::';
                 $key .= qq{"$v"} if defined $v;
                 next if $checked{$key};
-                
+
                 @res = $list->{$n}->($self, $sv, $v);
 
                 if (@res) {
@@ -103,7 +103,7 @@ sub register {
                     }
                     return unless defined $res[0];      # undef
                 }
-                
+
                 # return или return FALSE попадает сюда
                 $self->reply->not_found;
                 return;
@@ -141,7 +141,7 @@ Mojolicious::Plugin::RouteAccess - Mojolicious plugin controller route access.
     sub startup {
         my ($self) = @_;
         $self->plugin('RouteAccess');
-        
+
         # ...
 
         $self->routes
