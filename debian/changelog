@@ -1,3 +1,9 @@
+libmojolicious-plugin-routeaccess-perl (0.07) nowtaxi; urgency=medium
+
+  * Add access array variant.
+
+ -- Dmitry E. Oboukhov <unera@debian.org>  Fri, 10 Nov 2017 10:55:32 +0300
+
 libmojolicious-plugin-routeaccess-perl (0.06) nowtaxi; urgency=medium
 
   * Simple conditions

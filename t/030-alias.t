@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib t/lib);
 
-use Test::More tests    => 22;
+use Test::More tests    => 28;
 use Encode qw(decode encode);
 
 
@@ -41,6 +41,14 @@ sub startup {
                         });
                     return undef unless $check and $check eq 'nf';
                     return 0;
+            },
+
+            number_ifstash => sub {
+                my ($self, $check, $stash) = @_;
+                return unless $self->stash('blabla');
+                return unless $check =~ /^\d+$/;
+                $self->stash('ifstash', 1);
+                return 1;
             }
         )
         ->add_route_access_condition('number')
@@ -92,6 +100,26 @@ sub startup {
                     });
                 }
             );
+
+        $r  -> get('/ary/:bla')
+            -> over(access => [ 'number#bla', 'number_ifstash#bla' ])
+            -> to(cb => sub {
+                    my ($self) = @_;
+                    $self->render(json => {
+                        bla => $self->stash('blabla'),
+                        if  => $self->stash('ifstash')
+                    });
+            });
+        
+        $r  -> get('/rary/:bla')
+            -> over(access => [ 'number_ifstash#bla', 'number#bla' ])
+            -> to(cb => sub {
+                    my ($self) = @_;
+                    $self->render(json => {
+                        bla => $self->stash('blabla'),
+                        if  => $self->stash('ifstash')
+                    });
+            });
     }
 }
 
@@ -128,4 +156,14 @@ $t  -> get_ok('/multi/1')
     -> header_like('Content-Type', qr{application/json})
     -> json_is('/bla', 1 * 2)
     -> json_is('/old', 1 * 2)
+;
+
+$t  -> get_ok('/ary/123')
+    -> status_is(200)
+    -> json_is('/bla', 2 * 123)
+    -> json_is('/if', 1)
+;
+
+$t  -> get_ok('/rary/123')
+    -> status_is(404)
 ;

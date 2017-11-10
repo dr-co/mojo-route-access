@@ -4,7 +4,6 @@ use Carp;
 
 our $VERSION = '0.06';
 
-use Data::Dumper;
 use constant CONDNAME       => 'access';
 use constant STASHNAME      => 'mojo.access.list';
 
@@ -36,13 +35,14 @@ sub register {
     $app->routes->add_condition(CONDNAME() => sub {
         my ($r, $self, $capture, $access) = @_;
 
-        unless (ref $access) {
-            my ($k, $v) = split /#/, $access, 2;
-            $access = { $k, $v };
+        $access = [ $access ] unless 'ARRAY' eq ref $access;
+        
+        for my $a (@$access) {
+            unless (ref $a) {
+                my ($k, $v) = split /#/, $a, 2;
+                $a = { $k, $v };
+            }
         }
-
-        croak "Usage: \$r->over(access => { access_name => 'stash'  })"
-            unless 'HASH' eq ref $access;
 
         # TODO: HACK: uses req->{var} as stash ($self->stash can be redefined
         # from time to time)
@@ -50,11 +50,13 @@ sub register {
 
         my $list = $conf->{list};
 
-        for my $k (keys %$access) {
-            return 0 unless exists $list->{$k};
-            my $v = $access->{$k};
-            $v = [ $v ] unless 'ARRAY' eq ref $v;
-            push @$stash => [ $k, $v ];
+        for my $a (@$access) {
+            for my $k (keys %$a) {
+                return 0 unless exists $list->{$k};
+                my $v = $a->{$k};
+                $v = [ $v ] unless 'ARRAY' eq ref $v;
+                push @$stash => [ $k, $v ];
+            }
         }
 
         return 1;
@@ -223,6 +225,18 @@ for route checker:
     $r  -> get('/bla')
         -> over(access => { mycheck => undef })
         -> to(...);
+
+You can add several accesses one-by-one:
+
+    $r  -> get('bla/:id')
+        -> over(access => [
+                    'number#id',
+                    'more_than_10#id',
+                    ...
+        ])
+        -> to(...);
+
+Second handler will be started (checked) after the first.
 
 
 =head1 METHODS
