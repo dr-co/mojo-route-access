@@ -6,7 +6,7 @@ use utf8;
 use open qw(:std :utf8);
 use lib qw(lib ../lib t/lib);
 
-use Test::More tests    => 28;
+use Test::More tests    => 38;
 use Encode qw(decode encode);
 
 
@@ -48,6 +48,16 @@ sub startup {
                 return unless $self->stash('blabla');
                 return unless $check =~ /^\d+$/;
                 $self->stash('ifstash', 1);
+                return 1;
+            },
+
+            twice_number => sub {
+                my ($self, $v1, $v2, $name1, $name2) = @_;
+                return unless defined $v1 and $v1 =~ /^\d+$/;
+                return unless defined $v2 and $v2 =~ /^\d+$/;
+
+                $self->stash('s1', $v1);
+                $self->stash('s2', $v2);
                 return 1;
             }
         )
@@ -120,6 +130,18 @@ sub startup {
                         if  => $self->stash('ifstash')
                     });
             });
+
+        $r  -> get('/twice/:bla/:ble')
+            -> over(access => [ 'twice_number#bla,ble' ])
+            -> to(cb => sub {
+                my ($self) = @_;
+                $self->render(json => {
+                    bla => $self->stash('bla'),
+                    ble => $self->stash('ble'),
+                    s1  => $self->stash('s1'),
+                    s2  => $self->stash('s2'),
+                });
+            });
     }
 }
 
@@ -143,6 +165,7 @@ $t  -> get_ok('/over_condition/1')
     -> status_is(200)
     -> header_like('Content-Type', qr{application/json})
     -> json_is('/bla', 1 * 2)
+#     -> content_is('')
 ;
 
 $t  -> get_ok('/over_alias/1')
@@ -166,4 +189,17 @@ $t  -> get_ok('/ary/123')
 
 $t  -> get_ok('/rary/123')
     -> status_is(404)
+;
+
+$t  -> get_ok('/twice/123/abc')
+    -> status_is(404)
+    -> get_ok('/twice/abc/123')
+    -> status_is(404)
+
+    -> get_ok('/twice/123/345')
+    -> status_is(200)
+    -> json_is('/bla', 123)
+    -> json_is('/s1', 123)
+    -> json_is('/ble', 345)
+    -> json_is('/s2', 345)
 ;

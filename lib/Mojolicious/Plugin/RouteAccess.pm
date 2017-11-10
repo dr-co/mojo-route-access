@@ -6,7 +6,8 @@ our $VERSION = '0.06';
 
 use constant CONDNAME       => 'access';
 use constant STASHNAME      => 'mojo.access.list';
-
+use constant UNDEF_STR      => '37e6ab68c5f111e7a26687cee246a43a';
+use Data::Dumper;
 sub register {
     my ($self, $app, $conf) = @_;
 
@@ -55,10 +56,17 @@ sub register {
                 return 0 unless exists $list->{$k};
                 my $v = $a->{$k};
                 $v = [ $v ] unless 'ARRAY' eq ref $v;
+
+                for (@$v) {
+                    unless (defined $_) {
+                        $_ = [ undef ];
+                        next;
+                    }
+                    $_ = [ split /\s*,\s*/, $_ ];
+                }
                 push @$stash => [ $k, $v ];
             }
         }
-
         return 1;
     });
 
@@ -76,6 +84,14 @@ sub register {
 
             my $v = $pattern;
             $v = [ $v ] unless 'ARRAY' eq ref $v;
+                
+            for (@$v) {
+                unless (defined $_) {
+                    $_ = [ undef ];
+                    next;
+                }
+                $_ = [ split /\s*,\s*/, $_ ];
+            }
 
             my $stash = $self->req->{STASHNAME()} //= [];
             push @$stash => [ $k, $v ];
@@ -110,16 +126,14 @@ sub register {
 
             my @res;
             for my $v (@$checks) {
-                my $sv;
-                $sv = $self->stash($v) if defined $v;
+                my @sv = map { defined($_) ? $self->stash($_) : undef  } @$v;
 
-                my $key = '';
-                $key .= qq{"$sv"} if defined $sv;
-                $key .= '::';
-                $key .= qq{"$v"} if defined $v;
+                my $key = join '-', map { $_ // UNDEF_STR } @$v;
+                $key .= '=';
+                $key .= join '-', map { $_ // UNDEF_STR } @sv;
                 next if $checked{$key};
 
-                @res = $list->{$n}->($self, $sv, $v);
+                @res = $list->{$n}->($self, @sv, @$v);
 
                 if (@res) {
                     if ($res[0]) {                      # true
@@ -237,6 +251,25 @@ You can add several accesses one-by-one:
         -> to(...);
 
 Second handler will be started (checked) after the first.
+
+If stashname contains commas, the name will be splitted and all stashes will
+be extracted before access sub is called.
+
+
+    $ctx->add_route_access(mycheck => sub {
+        my ($ctx, $id, $hash, $stashname_id, $stashname_hash) = @_;
+
+        my $myobject = Database->load(id => $id);
+        return unless $myobject;
+        return unless $myobject->hash eq $hash;
+        return 1;
+    });
+
+    ...
+    $r  -> get('/api/:id/:hash/method')
+        -> over(access => 'mycheck#id,hash')
+        -> to('myctx#method')
+        -> name('my_method_name');
 
 
 =head1 METHODS
